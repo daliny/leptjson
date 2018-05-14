@@ -11,7 +11,9 @@ leptjson::value::value():n(0.0), type(LEPT_NULL){}
 void leptjson::init()
 {
   pos = 0;
-  memset(&v, 0, sizeof(value));
+  //memset(&v, 0, sizeof(value));
+  v.n = 0.0;
+  v.type = LEPT_NULL;
 }
 
 int  leptjson::parse(const string& json) // 解析json文本，目前只有null，boolean
