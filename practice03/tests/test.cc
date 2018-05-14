@@ -38,6 +38,13 @@ protected:
           EXPECT_EQ(LEPT_NULL_PTR, json.gettype()) << s;
        }
 
+       void InvaildStrMissQuotTester(const string& s)
+       {
+	      EXPECT_EQ(LEPT_PARSE_MISS_QUOTATION_MARK, json.parse(s)) << s;
+          EXPECT_EQ(LEPT_NULL_PTR, json.gettype()) << s;
+
+       }
+
        void InvalidStrCharTester(const string& s)
        {
 	      EXPECT_EQ(LEPT_PARSE_INVALID_STRING_CHAR, json.parse(s)) << s;
@@ -75,8 +82,6 @@ TEST_F(leptjsontest, leptinvalid){
   	InvalidTester("inf");
   	InvalidTester("NAN");
    	InvalidTester("nan");
-   	InvalidTester("\"onef");
-
 }
 
 TEST_F(leptjsontest, leptparsenumbertoobig)
@@ -142,10 +147,11 @@ TEST_F(leptjsontest, leptstringinvalid)
   InvalidStrEscapeTester("\"one \\r \\x\"");
   InvalidStrCharTester("\"fde \\");
   InvalidStrCharTester("\"fde \t");
+  InvaildStrMissQuotTester("\"fdre");
 }
 
-int main(int argc, char **argv)
+GTEST_API_ int main(int argc, char **argv)
 {
-     ::testing::InitGoogleTest(&argc, argv);
+     testing::InitGoogleTest(&argc, argv);
      return RUN_ALL_TESTS();
 }

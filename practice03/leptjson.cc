@@ -107,7 +107,7 @@ int leptjson::parse_string(const string& json)
         break;
     }
   }
-  return LEPT_PARSE_INVALID_VALUE;
+  return LEPT_PARSE_MISS_QUOTATION_MARK;
 }
 
 #define NUM0TO9(ch) \

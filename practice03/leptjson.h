@@ -6,13 +6,14 @@
 using namespace std;
 
 enum{ // 返回状态值
-	LEPT_PARSE_OK = 0,  // 解析成功
-    LEPT_PARSE_EXPECT_VALUE,  // 只含有空白
-    LEPT_PARSE_INVALID_VALUE, // 无效值，非null，boolean字面量
-    LEPT_PARSE_ROOT_NOT_SINGULAR, // 若在值和空白之后还有其他字符
-    LEPT_PARSE_NUMBER_TOO_BIG,   // 数字太大
-    LEPT_PARSE_INVALID_STRING_ESCAPE,
-    LEPT_PARSE_INVALID_STRING_CHAR
+	LEPT_PARSE_OK = 0,                // 解析成功
+    LEPT_PARSE_EXPECT_VALUE,          // 只含有空白
+    LEPT_PARSE_INVALID_VALUE,         // 无效值，非null，boolean字面量
+    LEPT_PARSE_ROOT_NOT_SINGULAR,     // 若在值和空白之后还有其他字符
+    LEPT_PARSE_NUMBER_TOO_BIG,        // 数字太大
+    LEPT_PARSE_MISS_QUOTATION_MARK,   // 缺右引号
+    LEPT_PARSE_INVALID_STRING_ESCAPE, // 无效转义
+    LEPT_PARSE_INVALID_STRING_CHAR    // 非法字符
 };
 enum{ // JSON类型
 	LEPT_NULL_PTR, LEPT_NULL, LEPT_FALSE, LEPT_TRUE, LEPT_NUMBER, LEPT_STRING
