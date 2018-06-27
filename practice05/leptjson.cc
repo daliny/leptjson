@@ -361,13 +361,23 @@ value leptjson::parse_number(const string& json)
 
   if(json[start] == '0')
   {
+    if(start+1 != size && (NUM0TO9(json[start+1]) || json[start+1] == 'x'
+                        || json[start+1] == 'X'))
+    {
+      jerrno = LEPT_PARSE_INVALID_VALUE;
+      return value(LEPT_NULL_PTR);
+    }
+  }
+  /*
+  if(json[start] == '0') // 这里有错，0后为空格或其他字符呢？
+  {
     if(start+1 != size && json[start+1] != '.' 
         && json[start+1] != 'e' && json[start+1] != 'E'){
       jerrno = LEPT_PARSE_INVALID_VALUE;
       return value(LEPT_NULL_PTR);
     }
   }
-
+*/
   const char *ptrs = json.c_str() + pos;
   char *ptrd = nullptr;
   if(json[size-1] != '.' && (NUM0TO9(json[pos]) || json[pos] == '-'))

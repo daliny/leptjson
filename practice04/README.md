@@ -1,90 +1,11 @@
-# 从零开始学习JSON库（三）
+#从0开始学习JSON库（四）
 
 * LINDA
-* 2018/5/13
+* 2018/6/12
 
-
-## JSON字符串
-在这一节里，加入对字符串的处理。JSON字符串有转义字符，如下：
-
+### 结构体设计问题
+隔了好久没有写了，主要是之前写JSON数组时，发现原来的数据结构不太适合。之前的结构体如下：
 ```
-\" represents the quotation mark character (U+0022).
-\\ represents the reverse solidus character (U+005C).
-\/ represents the solidus character (U+002F).
-\b represents the backspace character (U+0008).
-\f represents the form feed character (U+000C).
-\n represents the line feed character (U+000A).
-\r represents the carriage return character (U+000D).
-\t represents the character tabulation character (U+0009).
-```
-除此还有Unicode编码`\uxxxx`， 其中`xxxx`为16进制数。
-
-## 字符串表示
-```
-enum{..., LEPT_STRING};
-
-struct value{
-/********************
-	union{
-		string s; // string不能在union中使用，
-		          // 因为有非平凡构造函数的类在union中没有意义。
-		double n;
-	};
-********************/
-	int type;
-}v;
-```
-[Why compiler doesn't allow std::string inside union?
-](https://stackoverflow.com/questions/3521914/why-compiler-doesnt-allow-stdstring-inside-union)
-翻译如下：
-1.  有非平凡（copy等）构造函数（non-trivial (copy/)constructor）的类在union中没有意义。
-2. 
-```
-		union U {
-			 string x;
-			 vector<int> y;
-		};
-		U u;  // <--	
-```
-如果U是一个结构体，`u.x`和`u.y`将会被初始化为空string和空vector。但是，union的成员共享相同的地址。所以，如果`u.x`被初始化了，`u.y`将包含无效数据，反之亦然。如果两者都没有被初始化，它们都不能被使用。在任何时候，在union有这样的数据都不能很容易的被处理。所以，C++98选择禁用：
->An object of a class with a non-trivial constructor (12.1), a non-trivial copy constructor (12.8), a non-trivial destructor (12.4), or a non-trivial copy assignment operator (13.5.3, 12.8) cannot be a member of a union, nor can an array of such objects.
-
-而C++0x选择解禁：
->At most one non-static data member of a union may have a brace-or-equal-initializer. [Note: if any non-static data member of a union has a non-trivial default constructor (12.1), copy constructor (12.8), move constructor (12.8), copy assignment operator (12.8), move assignment operator (12.8), or destructor (12.4), the corresponding member function of the union must be user-provided or it will be implicitly deleted (8.4.3) for the union. — end note ]
-
-但是，为union创建构造函数和析构函数是不可能的。例如，如果没有额外信息，您或编译器如何为上述union编写copy构造函数？为了确保union中的成员有效，你需要使用tagged union，并且需要手动处理构造函数和析构函数：
-```
-struct TU {
-   int type;
-   union {
-     int i;
-     float f;
-     std::string s;
-   } u;
-
-   TU(const TU& tu) : type(tu.type) {
-     switch (tu.type) {
-       case TU_STRING: new(&u.s)(tu.u.s); break;
-       case TU_INT:    u.i = tu.u.i;      break;
-       case TU_FLOAT:  u.f = tu.u.f;      break;
-     }
-   }
-   ~TU() {
-     if (tu.type == TU_STRING)
-       u.s.~string();
-   }
-   ...
-};
-```
-此外，这个已经实现为 [boost::variant](https://www.boost.org/doc/libs/1_67_0/doc/html/variant.html) 或 [boost::any](https://www.boost.org/doc/libs/1_67_0/doc/html/any.html)了。
-
-**不过**，对于上面那段代码，我觉得是不正确的，疑惑如下：
-1.  我们就是为了构造结构体TU才写的构造函数，但是上面的copy构造函数却使用一个结构体`tu`作为传入参数，那么这个`tu`从何而来。。。
-2. 答者是想使用`new(ptr) T`这个函数来分配空间给union中s。但是`new(&u.s)(tu.u.s)`这样写我编译不同过。。。提示：`‘tu.u.s’ does not name a type`。正确的方式应该是`new(&u.s) string;`这是给`u.s`空间放置string信息的操作，然后内存多少由使用者操作。[看这里](https://zhuanlan.zhihu.com/p/20029820) 和[这里](http://en.cppreference.com/w/cpp/language/new)。
-3. 析构函数中的`tu.type`又是哪里来的？直接用`type`就可以了。
-
-因此，我的结构体声明和定义如下：
-```c++
 struct value{ // json值
     int type;
     union{
@@ -94,74 +15,101 @@ struct value{ // json值
     value(int _type, double d);
     value(int _type, string str);
     ~value();
-}; 
-
-class leptjson{
-	...
-	unique_ptr<value> v; // 指向value结构体的智能指针
 };
-value::value(int _type, double d):type(_type){
-	n = d;
-}
-
-value::value(int _type, string str){
-	new(s) string;
-	s = str;
-}
-
-value::~value(){
-	if(type == LEPT_STRING)
-		s.~string();
-}
 ```
-
-因为改用智能指针，所以value只有在解析成功了才分配空间存储，其他情况为`nullptr`。
-
-## 字符串解析
+其中，字符串`s`和数字`n`在一个union中，这是模仿叶老师的写法的，但是，要加入数组和对象类型，这个union会很难使用，各种构造函数和析构函数要考虑，我就在思考能不能用[varient](http://en.cppreference.com/w/cpp/utility/variant)来代替union。嗯，`varient`在C++17已经加入std了，`使用相关操作在最后`。尝试用`variant`如下：
 ```
-int leptjson::parse_value(string& s)
-{
-	...
-	case '\"': parse_string(s);
-	...
-}
-int leptjson::parse_string(string& s);
+struct value{ // json值
+        int type;
+        variant<double, shared_ptr<string>, shared_ptr<vector<value>>> u;
+    
+        value(const int _type, shared_ptr<vector<value>> a); // 构建json数组
+        value(const value& v);
+        value(const int _type, const double d);
+        value(const int _type, const string str);
+      };
 ```
-
-## 单元测试
-
-```c++
-
-...
-void InvalidStrEscapeTester(const string& s)
-{
-	 EXPECT_EQ(LEPT_PARSE_INVALID_STRING_ESCAPE, json.parse(s)) << s;
-     EXPECT_EQ(LEPT_NULL_PTR, json.gettype()) << s;
-}
-
-void InvalidStrCharTester(const string& s)
-{
-	 EXPECT_EQ(LEPT_PARSE_INVALID_STRING_CHAR, json.parse(s)) << s;
-     EXPECT_EQ(LEPT_NULL_PTR, json.gettype()) << s;
-}
-...
-
-TEST_F(leptjsontest, leptstring)
-{
-  StringTester("", "\"\"");
-  StringTester("hello", "\"hello\"");
-  StringTester("hello \n world", "\"hello \\n world\"");
-  StringTester("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
-  StringTester("\"hello \t\n/\b\f\r\\\"", "\"\\\"hello \\t\\n\\/\\b\\f\\r\\\\\\\"\"");
-}
-
-TEST_F(leptjsontest, leptstringinvalid)
-{
-  InvalidStrEscapeTester("\"one \\k \"");
-  InvalidStrEscapeTester("\"one \\r \\x\"");
-  InvalidStrCharTester("\"fde \\");
-  InvalidStrCharTester("\"fde \t");
-}
+这样写的话，是可以用了，但是构造函数要写多个，太繁琐了，抛弃！
+我又想既然每个类型互斥，是否可以用模板来写：
 ```
-##编码
-[在这](https://github.com/daliny/leptjson/tree/master/practice03)
+template <typename T>
+  class value{ // json值
+  public:
+    value(int t, shared_ptr<T> c=nullptr);
+    int gettype(); // 获取类型
+    double getnumber(); // 获取数字
+    string getstring(); // 获取字符串
+  private:
+    int type;
+    shared_ptr<T> context; // 内容
+  };
+```
+这样，看似问题解决了，其实，并没有。使用模板类型要先传入，也就是说，在**编译期**就要先知道对象的类型，不能到运行时再获取。而每次我们要解析一个json文本都是要在运行时才知道类型的。所以，模板也不能使用。。。此外，因为类成员变量不能用模板，所以，值要传回，不能保存在类内部。
+[来自这里](https://stackoverflow.com/questions/27838286/c-function-with-variable-return-type-using-auto)
+最后，我采用了最简单的方法，效果还不错：
+```
+class value{ // json值
+  public:
+    value();
+    ~value();
+    value(int t, shared_ptr<void> c=nullptr);
+    int gettype(); // 获取类型
+    double getnumber(); // 获取数字
+    string getstring(); // 获取字符串
+    string stringify(); // 序列化
+  private:
+
+    string stringify_str();
+    string stringify_array();
+    string stringify_obj();
+    int type;
+    shared_ptr<void> context; // 内容
+  };
+```
+把上面的模板改为固定的，**智能指针始终为void类型**，而当我们要获取相应JSON值时，再进行类型转换。这样，也不用额外的栈来存储了，直接存入即可。
+相应做了一些调整：
+```
+int gettype(); // 获取类型
+double getnumber(); // 获取数字
+string getstring(); // 获取字符串
+string stringify(); // 序列化
+```
+这些函数都是与json值操作相关的放在value中较为合理。
+
+之前是在leptjson类中使用成员变量`v`来保存解析后的值，现在直接将解析后的值传回，**错误码**保存在leptjson的成员变量`jerrno`中。
+
+此外，也顺便把**json生成器**写了——`string stringify()`。
+
+### 编码问题
+ `shared_ptr<>()`vs`make_shared<>()`
+使用时，要注意一下两个传入的值不同：
+```
+auto p = shared_ptr<double>(new double(12.3)); // OK
+auto p = make_shared<double>(12.3); // OK
+auto p = make_shared<double>(new double(12.3)); //error
+```
+详见[make_shared](http://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared#Example)
+此外，`shared_ptr<>()`使用一次，分配两次（一次分配存储内容空间，另一次分配控制块空间）；`make_shared<>()`使用一次，只分配一次。所以，后者效率比前者高，尽量使用后者。
+
+要将double转换为string，可以使用string流：
+```
+#include <sstream>
+double d = 12.3;
+ostringstream os;
+os << d;
+string s = os.str();
+```
+同样，将数值以16进制转为string：
+```
+#include <sstream>
+double d = 13;
+ostringstream os;
+os << hex << d;
+string s = os.str();
+```
+详见[how-do-i-convert-a-double-into-a-string-in-c](https://stackoverflow.com/questions/332111/how-do-i-convert-a-double-into-a-string-in-c)
+
+实现就没什么好说的了。。就酱。
+
+叶老师的知乎专栏也更新啦。哈哈，有点小激动，跟上老师的步伐。
+

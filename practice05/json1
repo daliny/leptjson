@@ -1,0 +1,31 @@
+{
+    "id": 6104546,
+    "node_id": "MDEwOlJlcG9zaXRvcnk2MTA0NTQ2",
+    "name": "-REPONAME",
+    "full_name": "mralexgray/-REPONAME",
+    "owner": {
+      "login": "mralexgray",
+      "id": 262517,
+      "node_id": "MDQ6VXNlcjI2MjUxNw==",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/262517?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mralexgray",
+      "html_url": "https://github.com/mralexgray",
+      "followers_url": "https://api.github.com/users/mralexgray/followers",
+      "following_url": "https://api.github.com/users/mralexgray/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mralexgray/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mralexgray/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mralexgray/subscriptions",
+      "organizations_url": "https://api.github.com/users/mralexgray/orgs",
+      "repos_url": "https://api.github.com/users/mralexgray/repos",
+      "events_url": "https://api.github.com/users/mralexgray/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mralexgray/received_events",
+      "type": "User",
+      "site_admin": false
+     },
+    "private": false,
+    "homepage": null,
+    "size": 48,
+    "stargazers_count": 10 //为什么为0出错， 因为数字解析函数有错
+}
+
