@@ -158,7 +158,7 @@ TEST_F(leptjsontest, leptobjectinvalid)
 ```c++
 if(json[start] == '0')
   {
-    if(start+1 != size && (NUM0TO9(json[start+1]) ||                     json[start+1] == 'x' || json[start+1] == 'X'))
+    if(start+1 != size && (NUM0TO9(json[start+1]) || json[start+1] == 'x' || json[start+1] == 'X'))
     {
       jerrno = LEPT_PARSE_INVALID_VALUE;
       return value(LEPT_NULL_PTR);
