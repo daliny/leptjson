@@ -1,0 +1,96 @@
+#ifndef LEPTJSON_H__
+#define LEPTJSON_H__
+#include <string>
+#include <memory>
+
+using namespace std;
+
+namespace json{
+  enum{ // 返回状态值
+	LEPT_PARSE_OK = 0,                // 解析成功
+    LEPT_PARSE_EXPECT_VALUE,          // 只含有空白
+    LEPT_PARSE_INVALID_VALUE,         // 无效值
+    LEPT_PARSE_ROOT_NOT_SINGULAR,     // 若在值和空白之后还有其他字符
+    LEPT_PARSE_NUMBER_TOO_BIG,        // 数字太大
+    LEPT_PARSE_MISS_QUOTATION_MARK,   // 缺右引号
+    LEPT_PARSE_INVALID_STRING_ESCAPE, // 无效转义
+    LEPT_PARSE_INVALID_STRING_CHAR,    // 非法字符
+    LEPT_PARSE_INVALID_UNICODE_HEX,
+    LEPT_PARSE_INVALID_UNICODE_SURROGATE,
+    LEPT_PARSE_MISS_VAL,
+    LEPT_PARSE_MISS_COMMA,
+    LEPT_PARSE_MISS_RBRKT,
+    LEPT_PARSE_MISS_COLON,
+    LEPT_PARSE_MISS_KEY,
+    LEPT_PARSE_MISS_PAIR
+  };
+
+  enum{ // JSON类型
+	LEPT_NULL_PTR, LEPT_NULL, LEPT_FALSE, LEPT_TRUE, 
+    LEPT_NUMBER, LEPT_STRING, LEPT_ARRAY, LEPT_OBJECT
+  };
+
+  enum{ // object的状态码
+    KEY_LEFT_QUOTE, KEY_CHAR, KEY_RIGHT_QUOTE, COLON, COMMA
+  };
+
+  class value{ // json值
+  public:
+   // value();
+    ~value();
+    explicit value(int t = 0, size_t size = 0, shared_ptr<void> c=nullptr);
+    explicit value(const value&);
+    value(value&&);
+    
+    value(double i); // json number 构造函数
+    //value(bool b);   // json bool 构造函数
+    value(const string& s); // json string 构造函数
+    
+    const value& operator=(const value& rhs);
+    const value& operator=(value&& rhs);
+    int gettype(); // 获取类型
+    size_t size();
+    double getnumber(); // 获取数字
+    string getstring(); // 获取字符串
+    string stringify(); // 序列化
+
+    value& operator[](size_t); // 数组索引
+    value  operator[](size_t) const;
+
+    value& operator[](const string&); // 字典索引
+    value  operator[](const string&) const;
+  private:
+
+    string stringify_str();
+    string stringify_array();
+    string stringify_obj();
+    int type;
+    size_t sz;
+    shared_ptr<void> context; // 内容
+  };
+
+  class leptjson{
+  public:
+
+	  leptjson();
+      ~leptjson();
+      int   geterr();
+      value parse(const string& json); // 解析json文本
+  private:
+      void init();
+      void parse_whitespace(const string& json);
+
+      value  parse_value(const string& json);
+      value  parse_literal(const string& json, const string& literal, int type);
+      value  parse_number(const string& json);
+      value  parse_string(const string& json);
+      void   encode_utf8(unsigned int u, string& s);
+      int    parse_hex4(const string& json, unsigned int *u);
+      value  parse_array(const string& json);
+      value  parse_object(const string& json);
+
+      int jerrno;
+      size_t pos; // 解析开始的位置
+  };
+}
+#endif
